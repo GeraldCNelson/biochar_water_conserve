@@ -1,8 +1,10 @@
 library(readr)
-dlnames <- c("S1T", "S1M", "S1B", "S2T", "S2M", "S2B", "S3T", "S3M", "S3B", "S4T", "S4M", "S4B")
+dlnames <- c("S1T", "S1M", "S1B", "S2T", "S2M", "S2B", "S3T",  "S3B") # "S3M", "S4T", "S4M",   "S4B"
 tableNums <- c("1", "2", "3")
 tableNums <- c("1")
 vars <- c("VWC", "EC", "T")
+
+startDate <- as.POSIXct("2023-05-13 16:00:00")
 
 for (dlname in dlnames) {
   for (tableNum in tableNums) {
@@ -21,16 +23,18 @@ for (dlname in dlnames) {
     t <- t[-1,] 
     t <- t[, -2] # remove RECORD column
     t <- t[!is.na(t$VWC_1_Avg),] 
+    t <- t[t$TIMESTAMP > startDate, ]
     if (nrow(t) == 0) {
       print(paste0(tname, " has no data."))
     } else {
       
       # reorder columns for easier eyeballing
       new_col_order <- c("TIMESTAMP", "VWC_1_Avg", "VWC_2_Avg", "VWC_3_Avg", "T_1_Avg",  "T_2_Avg",  "T_3_Avg", "EC_1_Avg", "EC_2_Avg", "EC_3_Avg")
-      t<- t[, new_col_order]
+      t <- t[, new_col_order]
+      print(head(t))
       # make sure it knows the location
   #    t$TIMESTAMP <-  as.POSIXct(t$TIMESTAMP,"America/Denver")
-      
+
       #plot the variables
       for (varname in vars) {
         if (varname == "VWC") {ylab = "Soil moisture (%)"; ylim <- c(0, 100)}
@@ -46,6 +50,7 @@ for (dlname in dlnames) {
         if (sum(is.na(y1)) == length(y1)) {print(paste0(tname, " sensor 1 ", "variable ", varname, " might have a bad connection.")); bad = 1}
         if (sum(is.na(y2)) == length(y2)) {print(paste0(tname, " sensor 2 ", "variable ", varname, " might have a bad connection.")); bad = 1}
         if (sum(is.na(y3)) == length(y3)) {print(paste0(tname, " sensor 3 ", "variable ", varname, " might have a bad connection.")); bad = 1}
+        print(head(t))
  #       print(paste0("bad ", bad))
         if (bad == 0) {
           maxy <- max(ceiling(c(y1, y2, y3)))
