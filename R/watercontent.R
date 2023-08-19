@@ -1,6 +1,6 @@
 library(readr)
 library(tidyverse)
-dlnames <- c("S1T", "S1M", "S1B", "S2T", "S2M", "S2B", "S3T",  "S3B", "S3M", "S4T", "S4M",   "S4B")  # 
+dlnames <- c("S1T", "S1M", "S1B", "S2T", "S2M", "S2B", "S3T", "S3M", "S3B", "S4T", "S4M", "S4B")  # 
 tableNums <- c("1", "2", "3")
 tableNum <- "1"
 varname <- "VWC"
@@ -23,22 +23,24 @@ dlname <- "S4T"
 tableNum <- c("1")
 
 startDate <- as.POSIXct("2023-05-23 14:00:00")
-startDate <- as.POSIXct("2023-06-01 01:00:00")
-endDate <- as.POSIXct("2023-07-20 24:00:00")
+startDate <- as.POSIXct("2023-07-01 01:00:00")
+endDate <- as.POSIXct("2023-08-11 24:00:00")
 #endDate <- Sys.time()
 
 irrig_start_times_west <- c(
   as.POSIXct("2023-05-23 15:25:00"), 
   as.POSIXct("2023-06-01 12:45:00"),
   as.POSIXct("2023-06-26 09:31:00"),
-  as.POSIXct("2023-07-17 08:04:00")
+  as.POSIXct("2023-07-17 08:04:00"),
+  as.POSIXct("2023-08-05 08:48:00")
 )
 
 irrig_end_times_west <- c(
   as.POSIXct("2023-05-23 19:20:00"), 
   as.POSIXct("2023-06-01 18:45:00"),
   as.POSIXct("2023-06-26 16:02:00"),
-  as.POSIXct("2023-06-26 16:04:00")
+  as.POSIXct("2023-07-17 16:04:00"),
+  as.POSIXct("2023-08-05 14:56:00")
 )
 
 irrig_start_times_east <- c(
@@ -47,7 +49,9 @@ irrig_start_times_east <- c(
   as.POSIXct("2023-06-14 08:25:00"),
   as.POSIXct("2023-06-27 07:53:00"),
   as.POSIXct("2023-07-07 07:46:00"),
-  as.POSIXct("2023-07-17 19:19:00")
+  as.POSIXct("2023-07-17 19:19:00"),
+  as.POSIXct("2023-07-27 10:00:00"),
+  as.POSIXct("2023-08-05 08:51:00")
 )
 
 irrig_end_times_east <- c(
@@ -56,11 +60,12 @@ irrig_end_times_east <- c(
   as.POSIXct("2023-06-14 17:29:00"),
   as.POSIXct("2023-06-27 16:14:00"),
   as.POSIXct("2023-07-07 15:46:00"),
-  as.POSIXct("2023-07-18 05:53:00")
+  as.POSIXct("2023-07-27 05:29:00"),
+  as.POSIXct("2023-08-05 11:03:00")
 )
 
-gal_applied_west <- c(145000, 67300, 89400, 128500, 120900, NA)
-gal_applied_east <- c(146600, 67500, 128200, 135700, 128500, 160900)
+gal_applied_west <- c(145000, 67300,  89400, 120900,  98500, NA,     NA,      NA)
+gal_applied_east <- c(146600, 67500, 128200, 135700, 128500, 160900, 50400, 36600)
 
 readData_WVC <- function(dlname, tableNum) {
   varname <- "VWC"
@@ -350,7 +355,7 @@ ploter <- function(comb) {
   
   print(ft, preview = "docx", pr_section = sect_properties)
   
-  save_as_docx(ft, values = NULL, path = "graphics/loggerdata.docx", pr_section = sect_properties)
+  save_as_docx(ft, values = NULL, path = "graphics/watercontent.docx", pr_section = sect_properties)
   
   
   

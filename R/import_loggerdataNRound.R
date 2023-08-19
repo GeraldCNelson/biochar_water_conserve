@@ -1,12 +1,18 @@
+# deal with daily average data 
 library(readr)
 library(data.table)
 startDate <- as.POSIXct("2023-05-23")
-startDate <- as.POSIXct("2023-07-01")
+startDate <- as.POSIXct("2023-06-01")
 endDate <- as.POSIXct("2023-08-11")
+#endDate <- as.POSIXct("2023-07-31")
 #endDate <- Sys.time()
-source("R/coagDataImport.R") # get ambient variables from Colorado Ag Data. 5 minute data averaged to 15 min. Creates coagdata data.table
+source("R/coagDataImport.R") # get variables from Colorado Ag Data. 5 minute data averaged to 15 min. Creates coagdata data.table
 
-dlnames <- c("S1T", "S1M", "S1B", "S2T", "S2M", "S2B", "S3T",  "S3M", "S3B", "S4T", "S4M", "S4B")  # 
+dlnames <- c("S1T", "S1M", "S1B", 
+             "S2T", "S2M", "S2B", 
+             "S3T", "S3M", "S3B", 
+             "S4T", "S4M", "S4B")  # 
+dlnames <- c( "S1M", "S2M", "S3M", "S4M", "S4B")  # 
 tableNums <- c("1", "2", "3")
 tableNums <- c("1")
 vars <- c("VWC", "EC", "T")
@@ -55,12 +61,6 @@ irrig_end_times_east <- c(
 gal_applied_west <- c(145000, 67300,  89400, 120900,  98500, NA,     NA,      NA)
 gal_applied_east <- c(146600, 67500, 128200, 135700, 128500, 160900, 50400, 36600)
 
-notes_west <- c("Strip 1 never really ran off end of field /nand you could walk on hills. Strip 2 ran off end of field in about 1.5 hours \ninto watering and furrows and hills were completely flooded. /nSome water from strip 1 ran off onto Sri's field.", 
-                "Started water at 11:16am noticed water stopped /nat 2:07pm for unknown amount of time. The canal valve was off so water was not flowing in system. \nTurned on again at 3:07 pm and finally /noff at 6:45 pm. Only a tiny bit of water at the very end ran onto sri's field, should not be an issue. All berms worked good.")
-
-notes_east <- c("Strip 4 was losing water to ne corner of field /nand didn’t water about 2-3 furrows west from east side. Strips 3 & 4 were running onto strip 2 as well. Water movement was s-sw.",
-                "Water was clean coming out of pipe. Field is good /nand saturated. There was no side movement of water, water ran down respective furrows so 1&2 were not influenced from this watering unlike the first watering.")
-
 for (dlname in dlnames) {
   if (dlname %in% c("S1T", "S1M", "S1B", "S2T", "S2M", "S2B")) { 
     west_strips <- 1 
@@ -84,18 +84,26 @@ for (dlname in dlnames) {
     t <- t[, -2] # remove RECORD column
     t <- t[t$TIMESTAMP >= startDate, ]
     t <- t[t$TIMESTAMP <= endDate, ]
-    date_times <- t$TIMESTAMP
     #   t <- t[!is.na(t$VWC_1_Avg),] 
     if (nrow(t) == 0) {
       stop(paste0(tname, " has no data after the start date."))
     } else {
+      
+      # average to a day
+      sdcols <- c("VWC_1_Avg", "EC_1_Avg",  "T_1_Avg",   "VWC_2_Avg", "EC_2_Avg",  "T_2_Avg", "VWC_3_Avg", "EC_3_Avg",  "T_3_Avg" )
+      t <- as.data.table(t)
+      t <- t[, lapply(.SD, function(x) mean(x, na.rm = TRUE)), 
+                           by = .(TIMESTAMP_24hr = cut(TIMESTAMP, "day")), .SDcols = sdcols]
+t[,TIMESTAMP_24hr := as.POSIXct(TIMESTAMP_24hr)]
+write.csv(t,  paste0("data/", tname, "_dayAve.csv")
+)
       # add Colorado ag stats data for Fruita
-      t <- merge(t, coagdata, by.x = "TIMESTAMP", by.y = "TIMESTAMP_15min")
+#      t <- merge(t, coagdata, by.x = "TIMESTAMP", by.y = "TIMESTAMP_15min")
       # reorder columns for easier eyeballing
-      new_col_order <- c("TIMESTAMP", "VWC_1_Avg", "VWC_2_Avg", "VWC_3_Avg", "T_1_Avg",  "T_2_Avg",  "T_3_Avg", "EC_1_Avg", "EC_2_Avg", "EC_3_Avg", "temp_ambient_C")
-      t <- t[, new_col_order]
+      new_col_order <- c("TIMESTAMP_24hr", "VWC_1_Avg", "VWC_2_Avg", "VWC_3_Avg", "T_1_Avg",  "T_2_Avg",  "T_3_Avg", "EC_1_Avg", "EC_2_Avg", "EC_3_Avg") #, "temp_ambient_C")
+      t <- setcolorder(t, new_col_order)
       print(paste0("logger: ", dlname))
-#      print(head(t))
+      date_times <- t$TIMESTAMP_24hr
       
       #plot the variables
       for (varname in vars) {
@@ -107,7 +115,7 @@ for (dlname in dlnames) {
         y2 = eval(parse(text = (paste0("t$", varname, "_2_Avg"))))
         y3 = eval(parse(text = (paste0("t$", varname, "_3_Avg"))))
         if (varname == "VWC") {
-          y1 <- y1 *100; y2 <- y2 *100; y3 <- y3 *100
+          y1 <- y1 * 100; y2 <- y2 * 100; y3 <- y3 * 100
           ylab = "Soil moisture (%)"
         }
         
@@ -120,14 +128,14 @@ for (dlname in dlnames) {
         miny <- min(floor(c(y1, y2, y3)), na.rm = TRUE)
         plotTitle <- paste0(gsub("_", " ", tname), ", ", ylab)
         plotTitle <- paste0(gsub("Table", "Table ", plotTitle))
-        plotSubtitle <- paste0("start date, time: ", format(date_times[1], "%m-%d %H:%M"), ", end date, time: ", format(date_times[length(date_times)], "%m-%d %H:%M"), "\nmin val: ", miny, ", max val: ", maxy)
-        outf <- paste0("graphics/", tname, "_", varname, ".png")
+        plotSubtitle <- paste0("start date, time: ", format(date_times[1], "%m-%d %H:%M"), ", end date, time: ", format(date_times[length(date_times)], "%m-%d"), "\nmin val: ", miny, ", max val: ", maxy)
+        outf <- paste0("graphics/", tname, "_", varname, "_dayAve.png")
         # Generate x axis grid lines every 12 hours
-        grid_lines <- seq(min(t$TIMESTAMP), max(t$TIMESTAMP), by = "24 hours")
+        grid_lines <- seq(min(t$TIMESTAMP_24hr), max(t$TIMESTAMP_24hr), by = "5 days")
         
         png(outf,  width = 4.5, height = 4, units = "in", res = 150, pointsize = 10, bg = "white")
         plot(date_times, y1, type = "l", xaxt = "n", col = "red", main = plotTitle,  sub = plotSubtitle, cex.sub = .7, ylab = ylab, xlab = "", ylim = ylim)
-        lines(date_times, t$temp_ambient_C, type = "l", col = "darkgray", cex.sub = .4,lwd = 0.5)
+  #      lines(date_times, t$temp_ambient_C, type = "l", col = "darkgray", cex.sub = .4,lwd = 0.5)
         if (!bad_y2 == 1) lines(date_times, y2, type = "l", col = "green")
         if (!bad_y3 == 1) lines(date_times, y3, type = "l", col = "blue")
         axis(1, at = grid_lines,
@@ -154,7 +162,7 @@ for (dlname in dlnames) {
           #         text(irrig_end_times_east, textY, notes_west, cex = 0.5, col = "darkgreen", pos = 3)
           
         }
-        legend("topleft", legend = c("air temp (°C)", paste0(varname, "_1 (6\")"), paste0(varname, "_2 (12\")"), paste0(varname, "_3 (24\")")), text.font=3, cex = 0.7, fill = c("darkgray", "red", "green", "blue"))
+        legend("topleft", legend = c( paste0(varname, "_1 (6\")"), paste0(varname, "_2 (12\")"), paste0(varname, "_3 (24\")")), text.font=3, cex = 0.7, fill = c("red", "green", "blue"))
         dev.off()
       }
     }
@@ -223,4 +231,3 @@ ft
 print(ft, preview = "docx", pr_section = sect_properties)
 
 save_as_docx(ft, values = NULL, path = "graphics/loggerdata.docx", pr_section = sect_properties)
-
