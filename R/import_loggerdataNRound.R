@@ -1,12 +1,31 @@
 # deal with daily average data 
 library(readr)
 library(data.table)
-startDate <- as.POSIXct("2023-05-23")
+library(lubridate)
+irrigation <- read_excel("data-raw/irrigation.xlsx", col_types = c("date", "text", "numeric", 
+                                                                   "numeric", "numeric", "numeric", 
+                                                                   "numeric", "numeric", "numeric", 
+                                                                   "numeric"))
+irrigation$DATE <- force_tz(irrigation$DATE, tz = "America/Denver")
+timeConvert <- function(t_in) {
+  time_decimal <- t_in
+  time_seconds <- as.integer(time_decimal * 86400)  # Convert fractions to seconds
+  time_hms <- seconds_to_period(time_seconds)
+  combined_datetime <- irrigation$DATE + time_hms
+  combined_datetime <- format(as.POSIXct(combined_datetime), "%Y-%m-%d %H:%M")
+}
+
+irrigation$TIME_ON <- timeConvert(irrigation$TIME_ON)
+irrigation$TIME_OFF <- timeConvert(irrigation$TIME_OFF)
+
+#startDate <- as.POSIXct("2023-05-23") earliest possible
 startDate <- as.POSIXct("2023-06-01")
 endDate <- as.POSIXct("2023-08-11")
-#endDate <- as.POSIXct("2023-07-31")
-#endDate <- Sys.time()
-source("R/coagDataImport.R") # get variables from Colorado Ag Data. 5 minute data averaged to 15 min. Creates coagdata data.table
+
+irrigation |> dplyr::filter(irrigation$DATE >= startDate & irrigation$DATE <= endDate)
+irrigation <- dplyr::filter(irrigation, DATE >= startDate & DATE <= endDate)
+
+#source("R/coagDataImport.R") # get variables from Colorado Ag Data. 5 minute data averaged to 15 min. Creates coagdata data.table
 
 dlnames <- c("S1T", "S1M", "S1B", 
              "S2T", "S2M", "S2B", 
@@ -21,45 +40,50 @@ vars <- c("VWC", "EC", "T")
 dlname <- "S4B"
 tableNum <- c("1")
 
-irrig_start_times_west <- c(
-  as.POSIXct("2023-05-23 15:25:00"), 
-  as.POSIXct("2023-06-01 12:45:00"),
-  as.POSIXct("2023-06-26 09:31:00"),
-  as.POSIXct("2023-07-17 08:04:00"),
-  as.POSIXct("2023-08-05 08:48:00")
-)
+# irrig_start_times_west <- c(
+#   as.POSIXct("2023-05-23 15:25:00"), 
+#   as.POSIXct("2023-06-01 12:16:00"),
+#   as.POSIXct("2023-06-26 09:31:00"),
+#   as.POSIXct("2023-07-17 08:04:00"),
+#   as.POSIXct("2023-08-05 08:48:00")
+# )
+# 
+# irrig_end_times_west <- c(
+#   as.POSIXct("2023-05-23 19:19:00"), 
+#   as.POSIXct("2023-06-01 18:45:00"),
+#   as.POSIXct("2023-06-26 16:02:00"),
+#   as.POSIXct("2023-07-17 16:04:00"),
+#   as.POSIXct("2023-08-05 14:56:00")
+# )
+# 
+# irrig_start_times_east <- c(
+#   as.POSIXct("2023-05-24 09:25:00"), 
+#   as.POSIXct("2023-06-02 03:43:00"),
+#   as.POSIXct("2023-06-14 08:25:00"),
+#   as.POSIXct("2023-06-27 07:53:00"),
+#   as.POSIXct("2023-07-07 07:46:00"),
+#   as.POSIXct("2023-07-17 19:19:00"),
+#   as.POSIXct("2023-07-27 10:00:00"),
+#   as.POSIXct("2023-08-05 08:51:00")
+# )
+# 
+# irrig_end_times_east <- c(
+#   as.POSIXct("2023-05-24 13:19:00"), 
+#   as.POSIXct("2023-06-02 22:12:00"),
+#   as.POSIXct("2023-06-14 17:29:00"),
+#   as.POSIXct("2023-06-27 16:14:00"),
+#   as.POSIXct("2023-07-07 15:46:00"),
+#   as.POSIXct("2023-07-17 17:53:00"),
+#   as.POSIXct("2023-07-27 17:29:00"),
+#   as.POSIXct("2023-08-05 11:03:00")
+# )
+# 
+# gal_applied_west <- c(145000, 67300,  89400, 120900,  98500, NA,     NA,      NA)
+# gal_applied_west <- c(145000, 67300,  89400, 120900,  98500)
+# gal_applied_east <- c(146600, 67500, 128200, 135700, 128500, 160900, 50400, 36600)
 
-irrig_end_times_west <- c(
-  as.POSIXct("2023-05-23 19:20:00"), 
-  as.POSIXct("2023-06-01 18:45:00"),
-  as.POSIXct("2023-06-26 16:02:00"),
-  as.POSIXct("2023-07-17 16:04:00"),
-  as.POSIXct("2023-08-05 14:56:00")
-)
-
-irrig_start_times_east <- c(
-  as.POSIXct("2023-05-24 09:25:00"), 
-  as.POSIXct("2023-06-02 03:43:00"),
-  as.POSIXct("2023-06-14 08:25:00"),
-  as.POSIXct("2023-06-27 07:53:00"),
-  as.POSIXct("2023-07-07 07:46:00"),
-  as.POSIXct("2023-07-17 19:19:00"),
-  as.POSIXct("2023-07-27 10:00:00"),
-  as.POSIXct("2023-08-05 08:51:00")
-)
-
-irrig_end_times_east <- c(
-  as.POSIXct("2023-05-24 13:19:00"), 
-  as.POSIXct("2023-06-02 22:12:00"),
-  as.POSIXct("2023-06-14 17:29:00"),
-  as.POSIXct("2023-06-27 16:14:00"),
-  as.POSIXct("2023-07-07 15:46:00"),
-  as.POSIXct("2023-07-27 05:29:00"),
-  as.POSIXct("2023-08-05 11:03:00")
-)
-
-gal_applied_west <- c(145000, 67300,  89400, 120900,  98500, NA,     NA,      NA)
-gal_applied_east <- c(146600, 67500, 128200, 135700, 128500, 160900, 50400, 36600)
+gal_applied_west <- irrigation |> dplyr::filter(STRIP_ID == "west") |> dplyr::pull(METER_GAL_USE_GAL_X_100)
+gal_applied_east <- irrigation |> dplyr::filter(STRIP_ID == "east") |> dplyr::pull(METER_GAL_USE_GAL_X_100)
 
 for (dlname in dlnames) {
   if (dlname %in% c("S1T", "S1M", "S1B", "S2T", "S2M", "S2B")) { 
@@ -93,12 +117,11 @@ for (dlname in dlnames) {
       sdcols <- c("VWC_1_Avg", "EC_1_Avg",  "T_1_Avg",   "VWC_2_Avg", "EC_2_Avg",  "T_2_Avg", "VWC_3_Avg", "EC_3_Avg",  "T_3_Avg" )
       t <- as.data.table(t)
       t <- t[, lapply(.SD, function(x) mean(x, na.rm = TRUE)), 
-                           by = .(TIMESTAMP_24hr = cut(TIMESTAMP, "day")), .SDcols = sdcols]
-t[,TIMESTAMP_24hr := as.POSIXct(TIMESTAMP_24hr)]
-write.csv(t,  paste0("data/", tname, "_dayAve.csv")
-)
+             by = .(TIMESTAMP_24hr = cut(TIMESTAMP, "day")), .SDcols = sdcols]
+      t[,TIMESTAMP_24hr := as.POSIXct(TIMESTAMP_24hr)]
+      write.csv(t,  paste0("data/", tname, "_dayAve.csv"))
       # add Colorado ag stats data for Fruita
-#      t <- merge(t, coagdata, by.x = "TIMESTAMP", by.y = "TIMESTAMP_15min")
+      #      t <- merge(t, coagdata, by.x = "TIMESTAMP", by.y = "TIMESTAMP_15min")
       # reorder columns for easier eyeballing
       new_col_order <- c("TIMESTAMP_24hr", "VWC_1_Avg", "VWC_2_Avg", "VWC_3_Avg", "T_1_Avg",  "T_2_Avg",  "T_3_Avg", "EC_1_Avg", "EC_2_Avg", "EC_3_Avg") #, "temp_ambient_C")
       t <- setcolorder(t, new_col_order)
@@ -126,20 +149,20 @@ write.csv(t,  paste0("data/", tname, "_dayAve.csv")
         if (sum(is.na(y3)) == length(y3)) {print(paste0(tname, " sensor 3 ", "variable ", varname, " might have a bad connection.")); bad_y3 = 1}
         maxy <- max(ceiling(c(y1, y2, y3)),na.rm = TRUE)
         miny <- min(floor(c(y1, y2, y3)), na.rm = TRUE)
-        plotTitle <- paste0(gsub("_", " ", tname), ", ", ylab)
-        plotTitle <- paste0(gsub("Table", "Table ", plotTitle))
-        plotSubtitle <- paste0("start date, time: ", format(date_times[1], "%m-%d %H:%M"), ", end date, time: ", format(date_times[length(date_times)], "%m-%d"), "\nmin val: ", miny, ", max val: ", maxy)
+        plotTitle <- paste0(dlname, ", ", ylab)
+        #        plotTitle <- paste0(gsub("Table", "Table ", plotTitle))
+        plotSubtitle <- paste0("start date, time: ", format(date_times[1], "%m-%d"), ", end date, time: ", format(date_times[length(date_times)], "%m-%d"), "\nmin val: ", miny, ", max val: ", maxy)
         outf <- paste0("graphics/", tname, "_", varname, "_dayAve.png")
         # Generate x axis grid lines every 12 hours
         grid_lines <- seq(min(t$TIMESTAMP_24hr), max(t$TIMESTAMP_24hr), by = "5 days")
         
         png(outf,  width = 4.5, height = 4, units = "in", res = 150, pointsize = 10, bg = "white")
         plot(date_times, y1, type = "l", xaxt = "n", col = "red", main = plotTitle,  sub = plotSubtitle, cex.sub = .7, ylab = ylab, xlab = "", ylim = ylim)
-  #      lines(date_times, t$temp_ambient_C, type = "l", col = "darkgray", cex.sub = .4,lwd = 0.5)
+        #      lines(date_times, t$temp_ambient_C, type = "l", col = "darkgray", cex.sub = .4,lwd = 0.5)
         if (!bad_y2 == 1) lines(date_times, y2, type = "l", col = "green")
         if (!bad_y3 == 1) lines(date_times, y3, type = "l", col = "blue")
         axis(1, at = grid_lines,
-             labels = format(grid_lines, "%m-%d %H"), cex.axis=0.7, xpd=NA, las = 3)
+             labels = format(grid_lines, "%m-%d"), cex.axis=0.7, xpd=NA, las = 3)
         grid(nx = NA, ny = NULL)
         abline(v=grid_lines, col="lightgray", lty="dotted", lwd=par("lwd")) # x axis grid
         textY <- 1
@@ -147,22 +170,31 @@ write.csv(t,  paste0("data/", tname, "_dayAve.csv")
           abline(v = irrig_start_times_west, col = "brown")
           abline(v = irrig_end_times_west, col = "darkgreen")
           if (varname == "T") textY <- 15
-          text(irrig_start_times_west, textY+3.0, "Irrig.\nStart", cex = 0.5, col = "brown")
-          galText_west <- paste0("Gal. applied: ", gal_applied_west, "\nend")
-          text(irrig_end_times_west, textY, galText_west, cex = 0.5, col = "darkgreen")
+          #       text(irrig_start_times_west, textY+3.0, "Irrig.\nStart", cex = 0.5, col = "brown")
+          galText_west <- paste0("Gallons: \n", gal_applied_west)
+          #         text(irrig_end_times_west, textY, galText_west, cex = 0.5, col = "darkgreen")
+          
+          tin_west <- round(irrig_start_times_west, units = "day")
+          
+          text(tin_west, pos = 4, textY, galText_west, cex = 0.5, col = "darkgreen") #offset = 1,
           #       text(irrig_end_times_west, textY, notes_west, cex = 0.5, col = "darkgreen", pos = 3)
         }
         if (west_strips == 0) {
           abline(v = irrig_start_times_east, col = "brown")
           abline(v = irrig_end_times_east, col = "darkgreen")
           if (varname == "T") textY <- 15
-          text(irrig_start_times_east, textY+3.0, "Irrig.\nStart", cex = 0.5, col = "brown")
-          galText_east <- paste0("Gal. applied: ", gal_applied_east, "\nend")
-          text(irrig_end_times_east, textY, galText_east, cex = 0.5, col = "darkgreen")
+          #          text(irrig_start_times_east, textY+3.0, "Irrig.\nStart", cex = 0.5, col = "brown")
+          galText_east <- paste0("Gallons: \n", gal_applied_east)
+          #         text(irrig_end_times_east, textY, galText_east, cex = 0.5, col = "darkgreen")
+          
+          tin_east <- round(irrig_start_times_east, units = "day")
+          
+          text(tin_east, pos = 4, textY, galText_east, cex = 0.5, col = "darkgreen") #offset = 1,
           #         text(irrig_end_times_east, textY, notes_west, cex = 0.5, col = "darkgreen", pos = 3)
           
         }
-        legend("topleft", legend = c( paste0(varname, "_1 (6\")"), paste0(varname, "_2 (12\")"), paste0(varname, "_3 (24\")")), text.font=3, cex = 0.7, fill = c("red", "green", "blue"))
+        # legend("topleft", legend = c( paste0(varname, "_1 (6\")"), paste0(varname, "_2 (12\")"), paste0(varname, "_3 (18\")")), text.font=3, cex = 0.7, fill = c("red", "green", "blue"))
+        legend("topleft", legend = c('6"', '12"', '18"'), text.font=3, cex = 0.7, fill = c("red", "green", "blue"))
         dev.off()
       }
     }

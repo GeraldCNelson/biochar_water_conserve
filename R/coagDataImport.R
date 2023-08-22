@@ -21,15 +21,15 @@ coagdata <- coagdata[, lapply(.SD, function(x) mean(x, na.rm = TRUE)),
                by = .(TIMESTAMP_15min = cut(TIMESTAMP, "15 mins")),
                .SDcols = names(coagdata)[!names(coagdata) %in% c("TIMESTAMP", "Station")]]
 
-# aggregate to day
-coagdata_day <- coagdata[, lapply(.SD, function(x) mean(x, na.rm = TRUE)), 
-                     by = .(TIMESTAMP_day = cut(TIMESTAMP, "day")),
-                     .SDcols = names(coagdata)[!names(coagdata) %in% c("TIMESTAMP", "Station")]]
-write.csv(coagdata_day, paste0("data/", "FruitaAgWeather", "_dayAve.csv"))
-
-t <- t[, lapply(.SD, function(x) mean(x, na.rm = TRUE)), 
-       by = .(TIMESTAMP_24hr = cut(TIMESTAMP, "day")), .SDcols = sdcols]
-t[,TIMESTAMP_24hr := as.POSIXct(TIMESTAMP_24hr)]
+# # aggregate to day
+# coagdata_day <- coagdata[, lapply(.SD, function(x) mean(x, na.rm = TRUE)), 
+#                      by = .(TIMESTAMP_day = cut(TIMESTAMP, "day")),
+#                      .SDcols = names(coagdata)[!names(coagdata) %in% c("TIMESTAMP_day", "Station")]]
+# write.csv(coagdata_day, paste0("data/", "FruitaAgWeather", "_dayAve.csv"))
+# 
+# t <- t[, lapply(.SD, function(x) mean(x, na.rm = TRUE)), 
+#        by = .(TIMESTAMP_24hr = cut(TIMESTAMP, "day")), .SDcols = sdcols]
+# t[,TIMESTAMP_24hr := as.POSIXct(TIMESTAMP_24hr)]
 
 
 
