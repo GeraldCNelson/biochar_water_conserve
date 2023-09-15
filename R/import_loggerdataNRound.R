@@ -1,7 +1,9 @@
 # deal with daily average data 
 library(readr)
+library(readxl)
 library(data.table)
 library(lubridate)
+library(dplyr)
 irrigation <- read_excel("data-raw/irrigation.xlsx", col_types = c("date", "text", "numeric", 
                                                                    "numeric", "numeric", "numeric", 
                                                                    "numeric", "numeric", "numeric", 
@@ -19,11 +21,17 @@ irrigation$TIME_ON <- timeConvert(irrigation$TIME_ON)
 irrigation$TIME_OFF <- timeConvert(irrigation$TIME_OFF)
 
 #startDate <- as.POSIXct("2023-05-23") earliest possible
-startDate <- as.POSIXct("2023-06-01")
-endDate <- as.POSIXct("2023-08-11")
+startDate <- as.POSIXct("2023-07-01")
+endDate <- as.POSIXct("2023-09-11")
 
 irrigation |> dplyr::filter(irrigation$DATE >= startDate & irrigation$DATE <= endDate)
 irrigation <- dplyr::filter(irrigation, DATE >= startDate & DATE <= endDate)
+
+irrig_start_times_west <- irrigation |> dplyr::filter(irrigation$STRIP_ID == "west") |> pull(TIME_ON) |> as.POSIXct()
+irrig_start_times_east <- irrigation |> dplyr::filter(irrigation$STRIP_ID == "east") |> pull(TIME_ON) |> as.POSIXct()
+
+irrig_end_times_west <- irrigation |> dplyr::filter(irrigation$STRIP_ID == "west") |> pull(TIME_OFF) |> as.POSIXct()
+irrig_end_times_east <- irrigation |> dplyr::filter(irrigation$STRIP_ID == "east") |> pull(TIME_OFF) |> as.POSIXct()
 
 #source("R/coagDataImport.R") # get variables from Colorado Ag Data. 5 minute data averaged to 15 min. Creates coagdata data.table
 
@@ -31,7 +39,7 @@ dlnames <- c("S1T", "S1M", "S1B",
              "S2T", "S2M", "S2B", 
              "S3T", "S3M", "S3B", 
              "S4T", "S4M", "S4B")  # 
-dlnames <- c( "S1M", "S2M", "S3M", "S4M", "S4B")  # 
+#dlnames <- c( "S1M", "S2M", "S3M", "S4M")  # 
 tableNums <- c("1", "2", "3")
 tableNums <- c("1")
 vars <- c("VWC", "EC", "T")
@@ -39,48 +47,6 @@ vars <- c("VWC", "EC", "T")
 # for testing
 dlname <- "S4B"
 tableNum <- c("1")
-
-# irrig_start_times_west <- c(
-#   as.POSIXct("2023-05-23 15:25:00"), 
-#   as.POSIXct("2023-06-01 12:16:00"),
-#   as.POSIXct("2023-06-26 09:31:00"),
-#   as.POSIXct("2023-07-17 08:04:00"),
-#   as.POSIXct("2023-08-05 08:48:00")
-# )
-# 
-# irrig_end_times_west <- c(
-#   as.POSIXct("2023-05-23 19:19:00"), 
-#   as.POSIXct("2023-06-01 18:45:00"),
-#   as.POSIXct("2023-06-26 16:02:00"),
-#   as.POSIXct("2023-07-17 16:04:00"),
-#   as.POSIXct("2023-08-05 14:56:00")
-# )
-# 
-# irrig_start_times_east <- c(
-#   as.POSIXct("2023-05-24 09:25:00"), 
-#   as.POSIXct("2023-06-02 03:43:00"),
-#   as.POSIXct("2023-06-14 08:25:00"),
-#   as.POSIXct("2023-06-27 07:53:00"),
-#   as.POSIXct("2023-07-07 07:46:00"),
-#   as.POSIXct("2023-07-17 19:19:00"),
-#   as.POSIXct("2023-07-27 10:00:00"),
-#   as.POSIXct("2023-08-05 08:51:00")
-# )
-# 
-# irrig_end_times_east <- c(
-#   as.POSIXct("2023-05-24 13:19:00"), 
-#   as.POSIXct("2023-06-02 22:12:00"),
-#   as.POSIXct("2023-06-14 17:29:00"),
-#   as.POSIXct("2023-06-27 16:14:00"),
-#   as.POSIXct("2023-07-07 15:46:00"),
-#   as.POSIXct("2023-07-17 17:53:00"),
-#   as.POSIXct("2023-07-27 17:29:00"),
-#   as.POSIXct("2023-08-05 11:03:00")
-# )
-# 
-# gal_applied_west <- c(145000, 67300,  89400, 120900,  98500, NA,     NA,      NA)
-# gal_applied_west <- c(145000, 67300,  89400, 120900,  98500)
-# gal_applied_east <- c(146600, 67500, 128200, 135700, 128500, 160900, 50400, 36600)
 
 gal_applied_west <- irrigation |> dplyr::filter(STRIP_ID == "west") |> dplyr::pull(METER_GAL_USE_GAL_X_100)
 gal_applied_east <- irrigation |> dplyr::filter(STRIP_ID == "east") |> dplyr::pull(METER_GAL_USE_GAL_X_100)
@@ -156,7 +122,7 @@ for (dlname in dlnames) {
         # Generate x axis grid lines every 12 hours
         grid_lines <- seq(min(t$TIMESTAMP_24hr), max(t$TIMESTAMP_24hr), by = "5 days")
         
-        png(outf,  width = 4.5, height = 4, units = "in", res = 150, pointsize = 10, bg = "white")
+        png(outf,  width = 4.5, height = 4, units = "in", res = 600, pointsize = 10, bg = "white")
         plot(date_times, y1, type = "l", xaxt = "n", col = "red", main = plotTitle,  sub = plotSubtitle, cex.sub = .7, ylab = ylab, xlab = "", ylim = ylim)
         #      lines(date_times, t$temp_ambient_C, type = "l", col = "darkgray", cex.sub = .4,lwd = 0.5)
         if (!bad_y2 == 1) lines(date_times, y2, type = "l", col = "green")
