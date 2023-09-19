@@ -5,7 +5,15 @@ library(data.table)
 library(lubridate)
 library(dplyr)
 
+# install packages that are not already installed
+list.of.needed.packages <- c("readr", "data.table", "readxl", "lubridate", "dplyr", "grDevices")
+new.packages <- list.of.packages[!(list.of.needed.packages %in% installed.packages()[,"Package"])]
+if(length(new.packages)) install.packages(new.packages)
+###
+
+#creaate the 'data' directory if it is not already created
 dir.create("data", F, F)
+
 irrigation <- read_excel("data-raw/irrigation.xlsx", col_types = c("date", "text", "numeric", 
                                                                    "numeric", "numeric", "numeric", 
                                                                    "numeric", "numeric", "numeric", 
