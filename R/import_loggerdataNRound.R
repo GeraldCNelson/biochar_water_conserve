@@ -4,6 +4,8 @@ library(readxl)
 library(data.table)
 library(lubridate)
 library(dplyr)
+
+dir.create("data", F, F)
 irrigation <- read_excel("data-raw/irrigation.xlsx", col_types = c("date", "text", "numeric", 
                                                                    "numeric", "numeric", "numeric", 
                                                                    "numeric", "numeric", "numeric", 
