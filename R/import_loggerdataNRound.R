@@ -1,15 +1,15 @@
 # deal with daily average data 
-library(readr)
-library(readxl)
-library(data.table)
-library(lubridate)
-library(dplyr)
 
 # install packages that are not already installed
 list.of.needed.packages <- c("readr", "data.table", "readxl", "lubridate", "dplyr", "grDevices")
 new.packages <- list.of.packages[!(list.of.needed.packages %in% installed.packages()[,"Package"])]
 if(length(new.packages)) install.packages(new.packages)
 ###
+library(readr)
+library(readxl)
+library(data.table)
+library(lubridate)
+library(dplyr)
 
 #creaate the 'data' directory if it is not already created
 dir.create("data", F, F)
