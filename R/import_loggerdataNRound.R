@@ -2,7 +2,7 @@
 
 # install packages that are not already installed
 list.of.needed.packages <- c("readr", "data.table", "readxl", "lubridate", "dplyr", "grDevices")
-new.packages <- list.of.packages[!(list.of.needed.packages %in% installed.packages()[,"Package"])]
+new.packages <- list.of.needed.packages[!(list.of.needed.packages %in% installed.packages()[,"Package"])]
 if(length(new.packages)) install.packages(new.packages)
 ###
 library(readr)
