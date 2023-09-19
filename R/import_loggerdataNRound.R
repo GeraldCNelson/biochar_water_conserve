@@ -1,7 +1,7 @@
 # deal with daily average data 
 
 # install packages that are not already installed
-list.of.needed.packages <- c("readr", "data.table", "readxl", "lubridate", "dplyr", "grDevices")
+list.of.needed.packages <- c("readr", "data.table", "readxl", "lubridate", "dplyr", "grDevices", "officer", "magrittr", "magick", "flextable")
 new.packages <- list.of.needed.packages[!(list.of.needed.packages %in% installed.packages()[,"Package"])]
 if(length(new.packages)) install.packages(new.packages)
 ###
