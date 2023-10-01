@@ -31,8 +31,8 @@ irrigation$TIME_ON <- timeConvert(irrigation$TIME_ON)
 irrigation$TIME_OFF <- timeConvert(irrigation$TIME_OFF)
 
 #startDate <- as.POSIXct("2023-05-23") earliest possible
-startDate <- as.POSIXct("2023-07-01")
-endDate <- as.POSIXct("2023-09-11")
+startDate <- as.POSIXct("2023-08-01")
+endDate <- as.POSIXct("2023-09-22")
 
 irrigation |> dplyr::filter(irrigation$DATE >= startDate & irrigation$DATE <= endDate)
 irrigation <- dplyr::filter(irrigation, DATE >= startDate & DATE <= endDate)
