@@ -10,10 +10,12 @@ vars <- c("VWC", "EC", "T")
 dlname <- "S2T"
 tableNum <- c("1")
 
-startDate <- as.POSIXct("2023-05-23 14:00:00")
+startDate <- as.POSIXct("2023-08-01")
+endDate <- as.POSIXct("2023-10-01")
 # read in the status file
 
 colsToKeep <- c("CalOffset", "RfSignalLevel", "RfRxPakBusCnt", "BattVoltage")
+colsToKeep <- c("BattVoltage")
 
 singleValueCols <- c("OSversion",  "OSDate", "OSSignature", "ProgName", "ProgSig", "PakBusAddress", "CalOffset", "RfInstalled", "RfNetAddr", "RfAddress", "RfHopSeq", "RfPwrMode", "Rf_ForceOn", "Rf_Protocol" )
 
@@ -21,17 +23,20 @@ for (dlname in dlnames) {
   tname_status <- paste0(dlname, "_Status")
   st <- readr::read_csv(paste0("data-raw/",tname_status, ".dat"), skip = 1, show_col_types = FALSE)
   st <- st[-(1:2),]
-  st$TIMESTAMP <- as.POSIXct(st$TIMESTAMP, format = "%Y-%m-%d %H:%M:%S")
-  plotTitle <- paste0("Battery voltage, ", dlname)
-  plotSubtitle <- paste0("OSversion: ", unique(st$OSversion), ", ProgName: ", unique(st$ProgName), ", PakBusAddress: ", unique(st$PakBusAddress), "\nRfInstalled: ", unique(st$RfInstalled), ", RfNetAddr: ", unique(st$RfNetAddr), ", RfAddress: ", unique(st$RfAddress), ",  RfHopSeq: ", unique(st$RfHopSeq), ", RfPwrMode: ", unique(st$RfPwrMode))
+  st <- st[st$TIMESTAMP >= startDate, ]
+  st <- st[st$TIMESTAMP <= endDate, ]
   
-  grid_lines <- seq(min(st$TIMESTAMP), max(st$TIMESTAMP), by = "48 hours")
+  st$TIMESTAMP <- as.POSIXct(st$TIMESTAMP, format = "%Y-%m-%d %H:%M:%S") #format = "%Y-%m-%d %H:%M:%S"
+  plotTitle <- paste0("Battery voltage, ", dlname)
+#  plotSubtitle <- paste0("OSversion: ", unique(st$OSversion), ", ProgName: ", unique(st$ProgName), ", PakBusAddress: ", unique(st$PakBusAddress), "\nRfInstalled: ", unique(st$RfInstalled), ", RfNetAddr: ", unique(st$RfNetAddr), ", RfAddress: ", unique(st$RfAddress), ",  RfHopSeq: ", unique(st$RfHopSeq), ", RfPwrMode: ", unique(st$RfPwrMode))
+  
+  grid_lines <- seq(min(st$TIMESTAMP), max(st$TIMESTAMP), by = "1 day")
   
   # battery voltage
   rnge <- c(11, 14)
   outf <- paste0("graphics/status/voltage_", dlname, ".png" )
   png(outf,  width = 4.5, height = 4, units = "in", res = 150, pointsize = 10, bg = "white")
-  plot(st$TIMESTAMP, st$BattVoltage, type = "l", main =   plotTitle, ylim = rnge, ylab = "Voltage", xlab = "", xaxt = "n", sub = plotSubtitle, cex.sub = .7)
+  plot(st$TIMESTAMP, st$BattVoltage, type = "l", main =   plotTitle, ylim = rnge, ylab = "Voltage", xlab = "", xaxt = "n", sub = "", cex.sub = .7)
   axis(1, at = grid_lines,
        labels = format(grid_lines, "%m-%d %H"), cex.axis=0.6, xpd=NA, las = 3)
   grid(nx = NA, ny = NULL)
@@ -88,9 +93,19 @@ write.csv(comb, "data-raw/singleValueVariables.csv")
 plotTitle <- paste0("RF signal level, ", dlname)
 outf <- paste0("graphics/status/RF_signallevel_", dlname, ".png" )
 png(outf,  width = 4.5, height = 4, units = "in", res = 150, pointsize = 10, bg = "white")
-plot(st$TIMESTAMP, st$RfSignalLevel, type = "l", main = plotTitle, , ylab = "", xlab = "", xaxt = "n", sub = plotSubtitle, cex.sub = .7)
+plot(st$TIMESTAMP, st$RfSignalLevel, type = "l", main = plotTitle, , ylab = "", xlab = "", xaxt = "n", cex.sub = .7) #, sub = plotSubtitle
 axis(1, at = grid_lines,
      labels = format(grid_lines, "%m-%d %H"), cex.axis=0.7, xpd=NA, las = 3)
 grid(nx = NA, ny = NULL)
 abline(v=grid_lines, col="lightgray", lty="dotted", lwd=par("lwd")) # x axis grid
 dev.off()
+
+
+# get program used
+for (dlname in dlnames) {
+  tname_status <- paste0(dlname, "_Status")
+  st <- readr::read_csv(paste0("data-raw/",tname_status, ".dat"), skip = 1, show_col_types = FALSE)
+prog <- st$ProgName
+prog_unique <- unique(prog)
+print(paste0("logger and program name: ", dlname, ", ", prog_unique))
+}
