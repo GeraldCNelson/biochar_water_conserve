@@ -77,7 +77,11 @@ for (dlname in dlnames) {
     print(paste0("working on table ", dlname))
     #read in and clean up the table
     colnames <- c("TIMESTAMP","RECORD","VWC_1_Avg","EC_1_Avg","T_1_Avg","VWC_2_Avg","EC_2_Avg","T_2_Avg","VWC_3_Avg","EC_3_Avg","T_3_Avg")
-    t <- readr::read_csv(paste0("data-raw/", tname, ".dat"), locale = locale(tz = "America/Denver"), col_names = colnames,           col_types = cols(TIMESTAMP = col_datetime(format = "%Y-%m-%d %H:%M:%S"),                                                                       VWC_1_Avg = col_number(), EC_1_Avg = col_number(), T_1_Avg = col_number(),                                                            VWC_2_Avg = col_number(), EC_2_Avg = col_number(), T_2_Avg = col_number(),                                                            VWC_3_Avg = col_number(), EC_3_Avg = col_number(), T_3_Avg = col_number()), 
+    t <- readr::read_csv(paste0("data-raw/", tname, ".dat"), locale = locale(tz = "America/Denver"), col_names = colnames, col_types = 
+                           cols(TIMESTAMP = col_datetime(format = "%Y-%m-%d %H:%M:%S"), RECORD = col_character(),
+                                VWC_1_Avg = col_number(), EC_1_Avg = col_number(), T_1_Avg = col_number(), 
+                                VWC_2_Avg = col_number(), EC_2_Avg = col_number(), T_2_Avg = col_number(), 
+                                VWC_3_Avg = col_number(), EC_3_Avg = col_number(), T_3_Avg = col_number()), 
                          skip = 4, na = c("", "NA", "NAN"))
     #t <- t[-1,] 
     t <- t[, -2] # remove RECORD column
