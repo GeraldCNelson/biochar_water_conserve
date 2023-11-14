@@ -17,10 +17,10 @@ coagdata_temp[, TIMESTAMP_15min := as.POSIXct(TIMESTAMP_15min, format = "%Y-%m-%
 #create the 'data' directory if it is not already created
 dir.create("data", F, F)
 
-irrigation <- read_excel("data-raw/irrigation.xlsx", col_types = c("date", "text", "numeric", 
+suppressWarnings(irrigation <- read_excel("data-raw/irrigation.xlsx", col_types = c("date", "text", "numeric", 
                                                                    "numeric", "numeric", "numeric", 
                                                                    "numeric", "numeric", "numeric", 
-                                                                   "numeric"))
+                                                                   "numeric")))
 irrigation$DATE <- force_tz(irrigation$DATE, tz = "America/Denver")
 timeConvert <- function(t_in) {
   time_decimal <- t_in
@@ -106,8 +106,11 @@ for (dlname in dlnames) {
       print(paste0("logger: ", dlname))
       date_times <- t$TIMESTAMP_24hr
       
-      #plot the variables
+      #plot the variables -----
       for (varname in vars) {
+        y1 = eval(parse(text = (paste0("t$", varname, "_1_Avg"))))
+        y2 = eval(parse(text = (paste0("t$", varname, "_2_Avg"))))
+        y3 = eval(parse(text = (paste0("t$", varname, "_3_Avg"))))
         if (varname == "T") {
           textY <- 15
           ylab = "Soil and air temperature (°C)"
@@ -125,10 +128,7 @@ for (dlname in dlnames) {
           ylab = "Volumetric Water Content (%)"
           ylim <- c(0, 50)
           ylab = "Soil moisture (%)"
-          y1 = eval(parse(text = (paste0("t$", varname, "_1_Avg"))))
-          y2 = eval(parse(text = (paste0("t$", varname, "_2_Avg"))))
-          y3 = eval(parse(text = (paste0("t$", varname, "_3_Avg"))))
-          y1 <- y1 * 100; y2 <- y2 * 100; y3 <- y3 * 100
+           y1 <- y1 * 100; y2 <- y2 * 100; y3 <- y3 * 100
         }
         
         # check for missing data from a sensor
@@ -136,10 +136,10 @@ for (dlname in dlnames) {
         if (sum(is.na(y1)) == length(y1)) {print(paste0(tname, " sensor 1 ", "variable ", varname, " might have a bad connection.")); bad_y1 = 1}
         if (sum(is.na(y2)) == length(y2)) {print(paste0(tname, " sensor 2 ", "variable ", varname, " might have a bad connection.")); bad_y2 = 1}
         if (sum(is.na(y3)) == length(y3)) {print(paste0(tname, " sensor 3 ", "variable ", varname, " might have a bad connection.")); bad_y3 = 1}
-        maxy <- max(ceiling(c(y1, y2, y3)),na.rm = TRUE)
-        miny <- min(floor(c(y1, y2, y3)), na.rm = TRUE)
+        ymax <- max(ceiling(c(y1, y2, y3)),na.rm = TRUE)
+        ymin <- min(floor(c(y1, y2, y3)), na.rm = TRUE)
         plotTitle <- paste0(dlname, ", ", ylab)
-        plotSubtitle <- paste0("start date, time: ", format(date_times[1], "%m-%d"), ", end date, time: ", format(date_times[length(date_times)], "%m-%d"), "\nmin val: ", miny, ", max val: ", maxy)
+        plotSubtitle <- paste0("start date, time: ", format(date_times[1], "%m-%d"), ", end date, time: ", format(date_times[length(date_times)], "%m-%d"), "\nmin val: ", ymin, ", max val: ", ymax)
         outf <- paste0("graphics/", tname, "_", varname, "_dayAve.png")
         # Generate x axis grid lines 
         grid_lines <- seq(min(t$TIMESTAMP_24hr), max(t$TIMESTAMP_24hr), by = "5 days")

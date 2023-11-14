@@ -1,5 +1,4 @@
 # statistical analysis of soil moisture data
-
 # install packages that are not already installed
 list.of.needed.packages <- c("readr", "data.table", "readxl", "lubridate", "dplyr", "grDevices", "officer", "magrittr", "magick", "flextable")
 new.packages <- list.of.needed.packages[!(list.of.needed.packages %in% installed.packages()[,"Package"])]
@@ -19,10 +18,10 @@ dir.create("data", F, F)
 #create the 'data' directory if it is not already created
 dir.create("data/stats", F, F)
 
-irrigation <- read_excel("data-raw/irrigation.xlsx", col_types = c("date", "text", "numeric", 
-                                                                   "numeric", "numeric", "numeric", 
-                                                                   "numeric", "numeric", "numeric", 
-                                                                   "numeric"))
+suppressWarnings(irrigation <- read_excel("data-raw/irrigation.xlsx", col_types = c("date", "text", "date",
+                                                                   "date", "numeric", "numeric",
+                                                                   "numeric", "numeric", "numeric",
+                                                                   "numeric")))
 irrigation$DATE <- force_tz(irrigation$DATE, tz = "America/Denver")
 timeConvert <- function(t_in) {
   time_decimal <- t_in
@@ -51,7 +50,6 @@ irrig_start_times_east <- irrigation |> dplyr::filter(irrigation$STRIP_ID == "ea
 irrig_end_times_west <- irrigation |> dplyr::filter(irrigation$STRIP_ID == "west") |> pull(TIME_OFF) |> as.POSIXct()
 irrig_end_times_east <- irrigation |> dplyr::filter(irrigation$STRIP_ID == "east") |> pull(TIME_OFF) |> as.POSIXct()
 
-
 dlnames <- c("S1T", "S1M", "S1B", 
              "S2T", "S2M", "S2B", 
              "S3T", "S3M", "S3B", 
@@ -61,13 +59,13 @@ tableNums <- c("1")
 vars <- c("VWC", "EC", "T")
 
 # for testing
-dlname <- "S4B"
+dlname <- "S4T"
 tableNum <- c("1")
 
 gal_applied_west <- irrigation |> dplyr::filter(STRIP_ID == "west") |> dplyr::pull(METER_GAL_USE_GAL_X_100)
 gal_applied_east <- irrigation |> dplyr::filter(STRIP_ID == "east") |> dplyr::pull(METER_GAL_USE_GAL_X_100)
 
-for (dlname in dlnames) {
+createStripData <- function(dlname) {
   if (dlname %in% c("S1T", "S1M", "S1B", "S2T", "S2M", "S2B")) { 
     west_strips <- 1 
   } else {
@@ -92,7 +90,7 @@ for (dlname in dlnames) {
     t <- t[t$TIMESTAMP <= endDate, ]
     t <- merge(t, coagdata_temp, by.x = "TIMESTAMP", by.y = "TIMESTAMP_15min")
     
-    # add logger specific infod, columns for strip, biochar, water share
+    # add logger specific info, columns for strip, biochar, water share
     strip <- substr(dlname, 2, 2)
     biochar <- "N"
     watervol <- 50
@@ -101,14 +99,18 @@ for (dlname in dlnames) {
     biochar <- rep(biochar, nrow(t))
     water <- rep(watervol, nrow(t))
     strip <- rep(strip, nrow(t))
-    
+    datalogger <- rep(dlname, nrow(t))
+    t <- cbind(datalogger, t)
     t <- cbind(t, strip)
     t <- cbind(t, biochar)
     t <- cbind(t, water)
-    new_col_order <- c("strip", "biochar", "water", "TIMESTAMP", "VWC_1_Avg", "VWC_2_Avg", "VWC_3_Avg", "T_1_Avg",  "T_2_Avg",  "T_3_Avg", "EC_1_Avg", "EC_2_Avg", "EC_3_Avg") #, "temp_ambient_C")
+    new_col_order <- c("datalogger", "strip", "biochar", "water", "TIMESTAMP", "VWC_1_Avg", "VWC_2_Avg", "VWC_3_Avg", "T_1_Avg",  "T_2_Avg",  "T_3_Avg", "EC_1_Avg", "EC_2_Avg", "EC_3_Avg") #, "temp_ambient_C")
     t <- setcolorder(t, new_col_order)
     outf <- paste0("data/statsdata_", dlname, ".csv")
     write_csv(t, outf)
   }
 }
 
+for (dlname in dlnames) {
+  createStripData(dlname)
+}
