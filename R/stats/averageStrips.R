@@ -29,15 +29,14 @@ depths <- c("6", "12", "18")
 startDate <- as.POSIXct("2023-06-01 12:00:00")
 endDate <- as.POSIXct("2023-08-30 12:00:00")
 
-varname <- "VWC"
+varname <- "EC"
 depth <- "18"
-stripCombo <- "W" # choices are W (strips 1 and 2) and E (strips 3 and 4)
-ylab <- "Volumetric Water Content (%)"
-if (varname == "T") ylab <- "Temperature (°C)"
-if (varname == "EC") ylab <- "Electrical conductivity \n(deciSiemens per meter)"
-xlab <- ""
 ymin <- 0
 ymax <- 0.5
+
+stripCombo <- "W" # choices are W (strips 1 and 2) and E (strips 3 and 4)
+ylab <- "Volumetric Water Content (%)"
+xlab <- ""
 
 
 # get irrigation start times for vertical lines
@@ -71,6 +70,10 @@ dt_vars <- as.data.table(readr::read_csv("data/statsdata_combined.csv", locale =
 dt_vars <- dt_vars[TIMESTAMP >= startDate & TIMESTAMP <= endDate]
 
 drawplot <- function(dt_vars, varname, depth, stripCombo, ylab, plotTitle, plotSubtitle, irrigation) {
+  if (varname == "T") ylab <- "Temperature (°C)"
+  if (varname == "EC") {ylab <- "Electrical conductivity \n(deciSiemens per meter)"
+  ymax = 1}
+  
   irrigation |> dplyr::filter(irrigation$DATE >= startDate & irrigation$DATE <= endDate)
   irrigation <- dplyr::filter(irrigation, DATE >= startDate & DATE <= endDate)
   

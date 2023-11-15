@@ -10,6 +10,9 @@ library(readxl)
 library(data.table)
 library(lubridate)
 library(dplyr)
+startDate <- as.POSIXct("2023-05-25")
+endDate <- as.POSIXct("2023-10-01")
+
 suppressWarnings(source("R/coagDataImport.R")) # get ambient variables from Colorado Ag Data. 5 minute data averaged to 15 min. Creates coagdata data.table
 coagdata_temp <- coagdata[, c("TIMESTAMP_15min", "temp_ambient_C")]
 coagdata_temp[, TIMESTAMP_15min := as.POSIXct(TIMESTAMP_15min, format = "%Y-%m-%d %H:%M")]
@@ -34,8 +37,6 @@ irrigation$TIME_ON <- timeConvert(irrigation$TIME_ON)
 irrigation$TIME_OFF <- timeConvert(irrigation$TIME_OFF)
 
 #startDate <- as.POSIXct("2023-05-23") earliest possible
-startDate <- as.POSIXct("2023-05-25")
-endDate <- as.POSIXct("2023-10-01")
 
 coagdata_temp <- coagdata_temp[TIMESTAMP_15min >= startDate, ]
 coagdata_temp <- coagdata_temp[TIMESTAMP_15min <= endDate, ]
