@@ -1,32 +1,37 @@
-# CO ag met data
-# source this code from coagDataImport.R
+# CO agricultural meteorology data, the function currently returns only ambient air temp
 # source of url is https://coagmet.colostate.edu/data/url-builder
+library(readr)
+library(data.table)
 f <- "data-raw/coagdata.csv"
 
-# startDate <- "2023-06-01"
-# endDate <- "2023-08-11"
-url <- paste0("https://coagmet.colostate.edu/data/5min/frt03.csv?header=yes&fields=t,rh,dewpt,vp,solarRad,precip,windSpeed,windDir,st5cm,st15cm&from=", startDate, "&to=", endDate, "&tz=co&units=m")
-download.file(url, f)
+metrics <- c("t","rh","dewpt","vp","solarRad","precip","windSpeed","windDir","st5cm","st15cm")
+metricsLabels <- c("datetime", "temp_air_degC", "rh_%", "dewpoint_deg_c", "vaporpressure_kpa", "solarrad_wm-2", "precip_mm", "wind_m_s", "winddir_deg_n", "temp_soil_5cm_deg_c", "temp_soil_15cm_deg_c")
+coagNumeric <- c("temp_air_degC", "rh_%", "dewpoint_deg_c", "vaporpressure_kpa", "solarrad_wm-2", "precip_mm", "wind_m_s", "winddir_deg_n", "temp_soil_5cm_deg_c", "temp_soil_15cm_deg_c")
+station <- "frt03" #Fruita
+collectperiod <- "5min"
+units <- "m"
 
-coagdata <- readr::read_csv("data-raw/coagdata.csv", 
-                     col_types = cols(Station = col_skip(), 
-                                      `Date and Time` = col_datetime(format = "%m/%d/%Y %H:%M"), 
-                                      `Air Temp` = col_number(), RH = col_number(), 
-                                      Dewpoint = col_number(), `Vapor Pressure` = col_number(), 
-                                      `Solar Rad` = col_number(), Precip = col_number(), 
-                                      Wind = col_number(), `Wind Dir` = col_number(), 
-                                      `5cm Soil Temp` = col_number(), `15cm Soil Temp` = col_number()))
-coagdata <- coagdata[-1,]
-names(coagdata) <- c("TIMESTAMP", "temp_ambient_C", "RH_%", "dewpoint_C", "VaporPress_kPa", "Solar.Rad_W_m-2", "Precip_mm", "Wind_ms", "Wind.Dir_deg",  "X5cm.Soil.Temp_C", "X15cm.Soil.Temp_C")
-coagdata <- as.data.table(coagdata)
-coagdata[,TIMESTAMP := as.POSIXct(TIMESTAMP, tz = "America/Denver", format = "%m/%d/%Y %H:%M")]
-coagNumeric <- c("temp_ambient_C", "RH_%", "dewpoint_C", "VaporPress_kPa", "Solar.Rad_W_m-2", "Precip_mm", "Wind_ms", "Wind.Dir_deg", "X5cm.Soil.Temp_C", "X15cm.Soil.Temp_C")
-coagdata[, (coagNumeric) := lapply(.SD, as.numeric), .SDcols = coagNumeric]
-
-# agg to 15 min
-coagdata <- coagdata[, lapply(.SD, function(x) mean(x, na.rm = TRUE)), 
-               by = .(TIMESTAMP_15min = cut(TIMESTAMP, "15 mins")),
-               .SDcols = names(coagdata)[!names(coagdata) %in% c("TIMESTAMP", "Station")]]
-
-
+getcoagdata <- function(startDate, endDate, metrics, station, collectperiod) {
+  combined_string <- paste(metrics, collapse = ",")
+  
+  url <- paste0("https://coagmet.colostate.edu/data/",collectperiod,"/", station,".csv?header=yes&fields=", combined_string,"&from=", startDate, "&to=", endDate, "&tz=co&units=", units)
+  download.file(url, f)
+  
+  coagdata <- as.data.table(read_csv("data-raw/coagdata.csv", 
+                                     col_types = cols(`date time` = col_datetime(format = "%m/%d/%Y %H:%M")), 
+                                     skip = 1))
+  colnames <- append("station", metricsLabels)
+  coagdata <- setnames(coagdata, old = names(coagdata), new = colnames)
+  
+  coagdata[,datetime := as.POSIXct(datetime, tz = "America/Denver", format = "%m/%d/%Y %H:%M")]
+  
+  # agg to 15 min
+  coagdata <- coagdata[, lapply(.SD, function(x) mean(x, na.rm = TRUE)), 
+                       by = .(datetime_15min = cut(datetime, "15 mins")),
+                       .SDcols = names(coagdata)[!names(coagdata) %in% c("datetime", "station")]]
+  
+  coagdata_temp <- coagdata[, c("datetime_15min", "temp_air_degC")]
+  coagdata_temp[, datetime_15min := as.POSIXct(datetime_15min, format = "%Y-%m-%d %H:%M")]
+  return(coagdata_temp)
+}
 

@@ -10,34 +10,17 @@ library(readxl)
 library(data.table)
 library(lubridate)
 library(dplyr)
+source("R/loadIrrigationData.R")
+source("R/coagDataImport.R")
 startDate <- as.POSIXct("2023-05-25")
 endDate <- as.POSIXct("2023-10-01")
-
-suppressWarnings(source("R/coagDataImport.R")) # get ambient variables from Colorado Ag Data. 5 minute data averaged to 15 min. Creates coagdata data.table
-coagdata_temp <- coagdata[, c("TIMESTAMP_15min", "temp_ambient_C")]
-coagdata_temp[, TIMESTAMP_15min := as.POSIXct(TIMESTAMP_15min, format = "%Y-%m-%d %H:%M")]
 
 #create the 'data' directory if it is not already created
 dir.create("data", F, F)
 
-suppressWarnings(irrigation <- read_excel("data-raw/irrigation.xlsx", col_types = c("date", "text", "numeric", 
-                                                                   "numeric", "numeric", "numeric", 
-                                                                   "numeric", "numeric", "numeric", 
-                                                                   "numeric")))
-irrigation$DATE <- force_tz(irrigation$DATE, tz = "America/Denver")
-timeConvert <- function(t_in) {
-  time_decimal <- t_in
-  time_seconds <- as.integer(time_decimal * 86400)  # Convert fractions to seconds
-  time_hms <- seconds_to_period(time_seconds)
-  combined_datetime <- irrigation$DATE + time_hms
-  combined_datetime <- format(as.POSIXct(combined_datetime), "%Y-%m-%d %H:%M")
-}
-
-irrigation$TIME_ON <- timeConvert(irrigation$TIME_ON)
-irrigation$TIME_OFF <- timeConvert(irrigation$TIME_OFF)
 
 #startDate <- as.POSIXct("2023-05-23") earliest possible
-
+coagdata_temp <- getcoagdata(startDate, endDate)
 coagdata_temp <- coagdata_temp[TIMESTAMP_15min >= startDate, ]
 coagdata_temp <- coagdata_temp[TIMESTAMP_15min <= endDate, ]
 
@@ -63,11 +46,8 @@ vars <- c("VWC", "EC", "T")
 dlname <- "S4B"
 tableNum <- c("1")
 
-gal_applied_west <- irrigation |> dplyr::filter(STRIP_ID == "west") |> dplyr::pull(METER_GAL_USE_GAL_X_100)
-gal_applied_east <- irrigation |> dplyr::filter(STRIP_ID == "east") |> dplyr::pull(METER_GAL_USE_GAL_X_100)
-
 for (dlname in dlnames) {
-  if (dlname %in% c("S1T", "S1M", "S1B", "S2T", "S2M", "S2B")) { 
+  if (dlname %in% c("S1T", "S1M", "S1B", "S2T", "S2M", "S2B")) { # strip 1 and 2 are the west side of the field
     west_strips <- 1 
   } else {
     west_strips <- 0
@@ -152,7 +132,7 @@ for (dlname in dlnames) {
         if (!bad_y3 == 1) lines(date_times, y3, type = "l", col = "blue")
         if (varname == "T") lines(date_times, y_ambient_temp, type = "l", col = "gray")
         axis(1, at = grid_lines,
-             labels = format(grid_lines, "%m-%d"), cex.axis = 0.5, lwd = 0.3, xpd = NA, las = 3)
+             labels = format(grid_lines, "%m-%d"), cex.axis = 0.7, lwd = 0.3, xpd = NA, las = 3)
         grid(nx = NA, ny = NULL, lwd = 0.3)
         abline(v=grid_lines, col = "lightgray", lty = "dotted", lwd = 0.3) # x axis grid
         if (west_strips == 1) { 
